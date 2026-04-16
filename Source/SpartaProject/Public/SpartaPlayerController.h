@@ -5,6 +5,7 @@
 #include "SpartaPlayerController.generated.h"
 
 class UInputMappingContext;
+class UUserWidget;
 class UInputAction;
 
 UCLASS()
@@ -48,6 +49,12 @@ public:
 	// 게임 시작
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void StartGame();
+	// 게임 종료
+	UFUNCTION(BlueprintCallable, Category = "Menu")
+	void QuitGame();
+	// 메뉴로 돌아가서 게임을 처음부터 시작하도록 상태 초기화 후 메뉴 로드
+	UFUNCTION(BlueprintCallable, Category = "Menu")
+	void GoToMenu();
 
 	virtual void BeginPlay() override;
 };

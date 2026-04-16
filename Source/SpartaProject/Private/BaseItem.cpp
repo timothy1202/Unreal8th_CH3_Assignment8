@@ -5,7 +5,8 @@
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
-
+#include "GameFramework/PlayerController.h" 
+#include "SpartaPlayerController.h" 
 
 // Sets default values
 ABaseItem::ABaseItem()
@@ -84,7 +85,9 @@ void ABaseItem::ActivateItem(AActor* Activator)
 			false
 		);
 	}
+	
 }
+
 
 FName ABaseItem::GetItemType() const
 {
@@ -96,6 +99,3 @@ void ABaseItem::DestroyItem()
 {
 	Destroy();
 }
-
-
-

@@ -101,6 +101,20 @@ void ASpartaPlayerController::ShowMainMenu(bool bIsRestart)
 					));
 				}
 			}
+
+			UFunction* PlayGoToMenuFunc = MainMenuWidgetInstance->FindFunction(FName("ShowGoToMenu"));
+			if (PlayGoToMenuFunc)
+			{
+				MainMenuWidgetInstance->ProcessEvent(PlayGoToMenuFunc, nullptr);
+			}
+
+			if (UTextBlock* MainMenuButtonText = Cast<UTextBlock>(MainMenuWidgetInstance->GetWidgetFromName("MainMenuButtonText")))
+			{
+				if (USpartaGameInstance* SpartaGameInstance = Cast<USpartaGameInstance>(UGameplayStatics::GetGameInstance(this)))
+				{
+					MainMenuButtonText->SetText(FText::FromString(FString::Printf(TEXT("Go To Menu"))));
+				}
+			}
 		}
 	}
 }
@@ -148,4 +162,35 @@ void ASpartaPlayerController::StartGame()
 
 	UGameplayStatics::OpenLevel(GetWorld(), FName("BasicLevel"));
 	SetPause(false);
+}
+
+// 메뉴로 돌아가서 게임을 처음부터 시작하도록 상태 초기화 후 메뉴 로드
+void ASpartaPlayerController::GoToMenu()
+{
+	// 게임 상태 초기화 (게임 인스턴스에 보관된 값들)
+	if (USpartaGameInstance* SpartaGameInstance = Cast<USpartaGameInstance>(UGameplayStatics::GetGameInstance(this)))
+	{
+		SpartaGameInstance->CurrentLevelIndex = 0;
+		SpartaGameInstance->TotalScore = 0;
+	}
+
+	// 메뉴 레벨(맵)으로 이동. 맵 이름이 다르면 "MenuLevel"을 에디터에 맞춰 변경하세요.
+	UGameplayStatics::OpenLevel(GetWorld(), FName("MenuLevel"));
+
+	// 일시정지 해제
+	SetPause(false);
+}
+
+// 게임 종료: 게임 인스턴스 정리(선택) 후 애플리케이션 종료 호출
+void ASpartaPlayerController::QuitGame()
+{
+	// 필요하면 종료 전에 게임 인스턴스 상태 초기화
+	if (USpartaGameInstance* SpartaGameInstance = Cast<USpartaGameInstance>(UGameplayStatics::GetGameInstance(this)))
+	{
+		SpartaGameInstance->CurrentLevelIndex = 0;
+		SpartaGameInstance->TotalScore = 0;
+	}
+
+	// 실제 종료 호출 (플랫폼에 따라 동작). 강제 종료(true) 또는 안전 종료(false) 선택 가능.
+	UKismetSystemLibrary::QuitGame(this, this, EQuitPreference::Quit, true);
 }
