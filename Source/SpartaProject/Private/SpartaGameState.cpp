@@ -55,6 +55,9 @@ int32 ASpartaGameState::GetScore() const
 
 void ASpartaGameState::AddScore(int32 Amount)
 {
+	// 레벨(또는 게임 상태) 내 즉시 반영용 점수 업데이트
+	Score += Amount;
+
 	if(UGameInstance* GameInstance = GetGameInstance())
 	{
 		if(USpartaGameInstance* SpartaGameInstance = Cast<USpartaGameInstance>(GameInstance))
