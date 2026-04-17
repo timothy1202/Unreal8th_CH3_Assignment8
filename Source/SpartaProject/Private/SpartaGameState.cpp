@@ -29,7 +29,7 @@ ASpartaGameState::ASpartaGameState()
 	ItemDecayMultiplier = 0.8f; // 웨이브가 증가할 때마다 아이템 수에 곱해짐
 	WaveTimeDecayMultiplier = 0.85f; // 웨이브가 증가할 때마다 웨이브 시간이 곱해짐
 
-	bPersistCoinsInLevel = true;
+	bPersistCoinsInLevel = false;
 	bPersistHealthInLevel = true;
 }
 
@@ -108,6 +108,7 @@ void ASpartaGameState::StartLevel()
 	StartWave();
 }
 
+
 void ASpartaGameState::StartWave()
 {
 	// 현재 레벨 이름이 "MenuLevel"이면 on-screen 메시지 출력하지 않음
@@ -120,25 +121,29 @@ void ASpartaGameState::StartWave()
 		}
 	}
 
-	// 모든 기존 아이템을 제거 (웨이브마다 초기화)
-	TArray<AActor*> FoundItems;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseItem::StaticClass(), FoundItems);
-	for (AActor* Actor : FoundItems)
+	// bPersistCoinsInLevel이 false일 때만 기존 아이템을 제거하고 카운트 리셋
+	if (!bPersistCoinsInLevel)
 	{
-		if (!Actor) continue;
-		if (ABaseItem* Item = Cast<ABaseItem>(Actor))
+		// 모든 기존 아이템을 제거 (웨이브마다 초기화)
+		TArray<AActor*> FoundItems;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseItem::StaticClass(), FoundItems);
+		for (AActor* Actor : FoundItems)
 		{
-			Item->DestroyItem();
+			if (!Actor) continue;
+			if (ABaseItem* Item = Cast<ABaseItem>(Actor))
+			{
+				Item->DestroyItem();
+			}
+			else
+			{
+				Actor->Destroy();
+			}
 		}
-		else
-		{
-			Actor->Destroy();
-		}
-	}
 
-	// 코인 카운트 리셋
-	SpawnedCoinCount = 0;
-	CollectedCoinCount = 0;
+		// 코인 카운트 리셋 (레벨 전체에서 누적하려면 bPersistCoinsInLevel = true로 설정)
+		SpawnedCoinCount = 0;
+		CollectedCoinCount = 0;
+	}
 
 	// 해당 웨이브에서 스폰할 아이템 수 계산 (감소 로직 유지)
 	int32 ItemsThisWave = FMath::Max(1, FMath::RoundToInt(BaseItemsPerWave * FMath::Pow(ItemDecayMultiplier, static_cast<float>(CurrentWaveIndex))));
@@ -161,7 +166,7 @@ void ASpartaGameState::StartWave()
 		false
 	);
 
-	UE_LOG(LogTemp, Log, TEXT("StartWave: %d ItemsThisWave: %d WaveDuration: %.2f"), CurrentWaveIndex + 1, ItemsThisWave, WaveDuration);
+	UE_LOG(LogTemp, Warning, TEXT("StartWave: %d ItemsThisWave: %d WaveDuration: %.2f"), CurrentWaveIndex + 1, ItemsThisWave, WaveDuration);
 }
 
 void ASpartaGameState::SpawnItemsForWave(int32 Count)
@@ -226,12 +231,23 @@ void ASpartaGameState::OnCoinCollected()
 
 	UE_LOG(LogTemp, Warning, TEXT("Coin Collected: %d / %d"),
 		CollectedCoinCount,
-		SpawnedCoinCount)
+		SpawnedCoinCount);
 
-	// 레벨 내 누적된 스폰 코인을 전부 주웠다면 즉시 레벨 종료
-	if (SpawnedCoinCount > 0 && CollectedCoinCount >= SpawnedCoinCount)
+	// 레벨 내 누적된 스폰 코인을 전부 주웠다면 즉시 레벨 종료 (bPersistCoinsInLevel=true 인 경우)
+	if (bPersistCoinsInLevel)
 	{
-		EndLevel();
+		if (SpawnedCoinCount > 0 && CollectedCoinCount >= SpawnedCoinCount)
+		{
+			EndLevel();
+		}
+	}
+	else
+	{
+		// 웨이브 단위로 취급하는 경우, 현재 웨이브의 코인을 전부 주웠다면 웨이브 종료
+		if (SpawnedCoinCount > 0 && CollectedCoinCount >= SpawnedCoinCount)
+		{
+			EndWave();
+		}
 	}
 }
 
@@ -292,8 +308,13 @@ void ASpartaGameState::UpdateHUD()
 			{
 				if (UTextBlock* TimeText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("Time"))))
 				{
-					float RemainingTime = GetWorldTimerManager().GetTimerRemaining(LevelTimerHandle);
-					TimeText->SetText(FText::FromString(FString::Printf(TEXT("Time: %.1f"), RemainingTime)));
+					float WaveRemaining = GetWorldTimerManager().GetTimerRemaining(WaveTimerHandle);
+					TimeText->SetText(FText::FromString(FString::Printf(TEXT("Wave: %.1f"), WaveRemaining)));
+				}
+
+				if (UTextBlock* CoinText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("Coin"))))
+				{
+					CoinText->SetText(FText::FromString(FString::Printf(TEXT("Coins: %d / %d"), CollectedCoinCount, SpawnedCoinCount)));
 				}
 
 				if (UTextBlock* ScoreText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("Score"))))
