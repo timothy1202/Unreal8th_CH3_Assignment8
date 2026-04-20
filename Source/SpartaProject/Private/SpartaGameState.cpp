@@ -9,6 +9,7 @@
 #include "SpartaPlayerController.h"
 #include "Math/UnrealMathUtility.h"
 #include "SpartaCharacter.h"
+#include "SpikeItem.h"
 
 ASpartaGameState::ASpartaGameState()
 {
@@ -136,7 +137,13 @@ void ASpartaGameState::StartWave()
 			if (!Actor) continue;
 			if (ABaseItem* Item = Cast<ABaseItem>(Actor))
 			{
-				Item->DestroyItem();
+				if (Item->IsA(ASpikeItem::StaticClass()))
+				{
+				}
+				else
+				{
+					Item->DestroyItem();
+				}
 			}
 			else
 			{
