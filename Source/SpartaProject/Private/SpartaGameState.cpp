@@ -8,6 +8,7 @@
 #include "Blueprint/UserWidget.h"
 #include "SpartaPlayerController.h"
 #include "Math/UnrealMathUtility.h"
+#include "SpartaCharacter.h"
 
 ASpartaGameState::ASpartaGameState()
 {
@@ -339,6 +340,37 @@ void ASpartaGameState::UpdateHUD()
 				if (UTextBlock* WaveIndexText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("Wave"))))
 				{
 					WaveIndexText->SetText(FText::FromString(FString::Printf(TEXT("Wave: %d/%d"), CurrentWaveIndex + 1, MaxWaves)));
+				}
+
+				// 플레이어 폰(캐릭터)에서 상태 가져오기
+				ASpartaCharacter* SpartaCharacter = nullptr;
+				if (APawn* Pawn = PlayerController->GetPawn())
+				{
+					SpartaCharacter = Cast<ASpartaCharacter>(Pawn);
+				}
+
+				// ReverseControlItem: 캐릭터의 bIsControlsReversed에 따라 Visible/Hidden
+				if (UWidget* ReverseWidget = HUDWidget->GetWidgetFromName(TEXT("ReverseControllerItem")))
+				{
+					ReverseWidget->SetVisibility((SpartaCharacter && SpartaCharacter->bIsControlsReversed)
+						? ESlateVisibility::Visible
+						: ESlateVisibility::Hidden);
+				}
+
+				// SlowingItem: 캐릭터의 isSlowed에 따라 Visible/Hidden
+				if (UWidget* SlowingWidget = HUDWidget->GetWidgetFromName(TEXT("SlowingItem")))
+				{
+					SlowingWidget->SetVisibility((SpartaCharacter && SpartaCharacter->isSlowed)
+						? ESlateVisibility::Visible
+						: ESlateVisibility::Hidden);
+				}
+
+				// BlindItem: 캐릭터의 IsBlinded에 따라 Visible/Hidden
+				if (UWidget* BlindWidget = HUDWidget->GetWidgetFromName(TEXT("BlindItem")))
+				{
+					BlindWidget->SetVisibility((SpartaCharacter && SpartaCharacter->IsBlinded)
+						? ESlateVisibility::Visible
+						: ESlateVisibility::Hidden);
 				}
 			}
 		}

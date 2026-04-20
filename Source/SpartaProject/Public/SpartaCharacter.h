@@ -61,14 +61,15 @@ public:
 	void ApplyBlindEffect();
 
 	bool bIsControlsReversed;
+	bool IsBlinded;
+	bool isSlowed;
+
 	// 최대 체력
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 	float MaxHealth;
 	// 현재 체력
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Health")
 	float Health;
-
-	bool isSlowed;
 
 	virtual void BeginPlay() override;
 	// 사망 처리 함수 (체력이 0 이하가 되었을 때 호출)

@@ -40,6 +40,8 @@ ASpartaCharacter::ASpartaCharacter()
 
 	// 입력 반전 기본값
 	bIsControlsReversed = false;
+	isSlowed = false;
+	IsBlinded = false;
 }
 
 void ASpartaCharacter::BeginPlay()
@@ -201,6 +203,7 @@ void ASpartaCharacter::ApplySlowingEffect()
 {
 	if (GetCharacterMovement())
 	{
+		isSlowed = true;
 		GetCharacterMovement()->MaxWalkSpeed *= 0.5f; // 이동 속도를 50%로 감소
 		// 타이머를 설정하여 일정 시간 후에 원래 속도로 복구
 		FTimerHandle TimerHandle;
@@ -209,6 +212,7 @@ void ASpartaCharacter::ApplySlowingEffect()
 				if (GetCharacterMovement())
 				{
 					GetCharacterMovement()->MaxWalkSpeed = NormalSpeed; // 원래 속도로 복구
+					isSlowed = false; // 느려지는 효과 해제
 				}
 			}, 5.0f, false); // 5초 후에 실행
 	}
@@ -287,14 +291,22 @@ void ASpartaCharacter::ApplyBlindEffect()
 		// 로컬 컨트롤러인지 확인 (서버에서 실행되는 경우 PlayerCameraManager가 없을 수 있음)
 		if (PC->IsLocalController() && PC->PlayerCameraManager)
 		{
+			IsBlinded = true;
 			// 즉시 페이드 인 (0 -> 1)
 			PC->PlayerCameraManager->StartCameraFade(0.0f, 1.0f, 0.1f, FLinearColor::Black, false, true);
 
-			// 2초 후 페이드 아웃 (1 -> 0) — 약한 포인터로 안전하게 접근
+			// 2초 후 페이드 아웃 (1 -> 0)
 			FTimerHandle TimerHandle;
+			TWeakObjectPtr<ASpartaCharacter> WeakSelf(this);
 			TWeakObjectPtr<APlayerController> WeakPC(PC);
-			FTimerDelegate FadeOutDelegate = FTimerDelegate::CreateLambda([WeakPC]() 
+
+			// WeakSelf와 WeakPC를 캡처하도록 수정
+			FTimerDelegate FadeOutDelegate = FTimerDelegate::CreateLambda([WeakSelf, WeakPC]()
 				{
+					if (ASpartaCharacter* Self = WeakSelf.Get())
+					{
+						Self->IsBlinded = false; // 상태 초기화
+					}
 					if (APlayerController* P = WeakPC.Get())
 					{
 						if (P->PlayerCameraManager)
