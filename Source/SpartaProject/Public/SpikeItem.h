@@ -19,6 +19,8 @@ public:
 	// 토글 간격(초)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	float ToggleInterval = 3.0f;
+	bool IsActive() const { return bIsActive; }
+	void StartSpike();
 
 protected:
 	// 현재 활성 상태(보이는 상태일 때 true)
@@ -29,5 +31,4 @@ protected:
 	// 정기적으로 호출되어 보임/콜리전 토글
 	UFUNCTION()
 	void ToggleActiveState();
-
 };

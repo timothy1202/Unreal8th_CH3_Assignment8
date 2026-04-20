@@ -94,4 +94,7 @@ public:
 	// 레벨을 강제 종료하고 다음 레벨로 이동
 	void EndLevel();
 	void UpdateHUD();
+	int32 GetCurrentWave() const { return CurrentWaveIndex + 1; }
+	void MakeSpike();
+	void MakeBomb();
 };

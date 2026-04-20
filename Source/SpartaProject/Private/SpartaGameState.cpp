@@ -178,6 +178,15 @@ void ASpartaGameState::StartWave()
 	);
 
 	UE_LOG(LogTemp, Warning, TEXT("StartWave: %d ItemsThisWave: %d WaveDuration: %.2f"), CurrentWaveIndex + 1, ItemsThisWave, WaveDuration);
+
+	if (CurrentWaveIndex + 1 ==	2)
+	{
+		MakeSpike();
+	}
+	if(CurrentWaveIndex + 1 == 3)
+	{
+		MakeBomb();
+	}
 }
 
 void ASpartaGameState::SpawnItemsForWave(int32 Count)
@@ -379,7 +388,56 @@ void ASpartaGameState::UpdateHUD()
 						? ESlateVisibility::Visible
 						: ESlateVisibility::Hidden);
 				}
+
+				if (UWidget* SpikeWidget = HUDWidget->GetWidgetFromName(TEXT("SpikeItem")))
+				{
+					bool bShowSpike = false;
+					if (SpartaCharacter)
+					{
+						TArray<AActor*> FoundSpikes;
+						UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpikeItem::StaticClass(), FoundSpikes);
+						if (FoundSpikes.Num() > 0)
+						{
+							if (ASpikeItem* Spike = Cast<ASpikeItem>(FoundSpikes[0]))
+							{
+								bShowSpike = Spike->IsActive();
+							}
+						}
+					}
+					SpikeWidget->SetVisibility(bShowSpike ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+				}
 			}
 		}
+	}
+}
+
+void ASpartaGameState::MakeSpike()
+{
+	TArray<AActor*> FoundSpikes;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpikeItem::StaticClass(), FoundSpikes);
+
+	for (AActor* Actor : FoundSpikes)
+	{
+		ASpikeItem* Spike = Cast<ASpikeItem>(Actor);
+
+		if (Spike)
+		{
+			Spike->StartSpike();
+		}
+	}
+}
+
+void ASpartaGameState::MakeBomb()
+{
+	ASpawnVolume* SpawnVolume = Cast<ASpawnVolume>(UGameplayStatics::GetActorOfClass(GetWorld(), ASpawnVolume::StaticClass()));
+
+	if (SpawnVolume)
+	{
+		SpawnVolume->StartSpawningExplosions();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ASpartaGameState: 맵에 ASpawnVolume을 찾을 수 없습니다!"));
 	}
 }

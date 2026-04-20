@@ -1,6 +1,9 @@
 #include "SpawnVolume.h"
 #include "Components/BoxComponent.h"
-
+#include "Kismet/GameplayStatics.h"
+#include "MineItem.h"
+#include "SpartaGameState.h"
+#include "BombItem.h"
 
 ASpawnVolume::ASpawnVolume()
 {
@@ -14,6 +17,17 @@ ASpawnVolume::ASpawnVolume()
 	SpawningBox->SetupAttachment(Scene);
 
 	ItemDataTable = nullptr;
+
+	// Explosion defaults
+	ExplosionClass = nullptr;
+	ExplosionSpawnInterval = 5.0f;
+
+	TargetWaveNumber = 3;
+}
+
+void ASpawnVolume::BeginPlay()
+{
+	Super::BeginPlay();
 }
 
 FVector ASpawnVolume::GetRandomPointInVolume() const
@@ -94,5 +108,63 @@ AActor* ASpawnVolume::SpawnItem(TSubclassOf<AActor> ItemClass)
 	return SpawnedActor;
 }
 
+// --- Explosion spawning implementation ---
 
- 
+void ASpawnVolume::StartSpawningExplosions()
+{
+	if (!ExplosionClass) return;
+
+	// 이미 타이머가 돌고 있으면 재설정
+	GetWorld()->GetTimerManager().ClearTimer(ExplosionSpawnTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(
+		ExplosionSpawnTimerHandle,
+		this,
+		&ASpawnVolume::SpawnRandomExplosion,
+		FMath::Max(0.01f, ExplosionSpawnInterval),
+		true,
+		0.0f
+	);
+
+}
+
+
+void ASpawnVolume::StopSpawningExplosions()
+{
+	GetWorld()->GetTimerManager().ClearTimer(ExplosionSpawnTimerHandle);
+}
+
+void ASpawnVolume::SpawnRandomExplosion()
+{
+	ASpartaGameState* GS = GetWorld() ? GetWorld()->GetGameState<ASpartaGameState>() : nullptr;
+	if (!GS) return;
+	
+	const int32 CurrentWaveOneBased = GS->CurrentWaveIndex + 1; // GameState는 0-based이므로 +1
+	if (!ExplosionClass || !SpawningBox) return; // SpawningBox가 유효한지 확인
+	
+	// 1. 박스의 중심점과 크기(Extent) 가져오기
+	FVector BoxLocation = SpawningBox->GetComponentLocation();
+	FVector BoxExtent = SpawningBox->GetScaledBoxExtent();
+	
+	// 2. 박스의 최소/최대 지점을 계산하여 FBox 생성
+	FBox Bounds(BoxLocation - BoxExtent, BoxLocation + BoxExtent);
+
+	// 5. 5번 반복하여 스폰
+	for (int32 i = 0; i < 5; ++i)
+	{
+		// 박스 범위 내에서 랜덤 위치 생성
+		FVector SpawnLocation = FMath::RandPointInBox(Bounds);
+
+		// 액터 스폰
+		AActor* Spawned = GetWorld()->SpawnActor<AActor>(ExplosionClass, SpawnLocation, FRotator::ZeroRotator);
+
+		// 스폰 성공 확인 및 초기화
+		if (Spawned)
+		{
+			if (ABombItem* Bomb = Cast<ABombItem>(Spawned))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Spawned explosion #%d at %s"), i + 1, *SpawnLocation.ToString());
+				Bomb->ActivateItem(nullptr);
+			}
+		}
+	}
+}

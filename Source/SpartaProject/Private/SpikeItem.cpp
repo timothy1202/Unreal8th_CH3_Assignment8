@@ -3,6 +3,8 @@
 #include "SpartaCharacter.h"
 #include "TimerManager.h"
 #include "Components/SphereComponent.h"
+#include "SpartaGameState.h"
+#include "Engine/World.h"
 
 ASpikeItem::ASpikeItem()
 {
@@ -23,13 +25,17 @@ void ASpikeItem::BeginPlay()
 	{
 		ToggleInterval = 3.0f;
 	}
-	GetWorldTimerManager().SetTimer(
-		ToggleTimerHandle,
-		this,
-		&ASpikeItem::ToggleActiveState,
-		ToggleInterval,
-		true
-	);
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	if (ASpartaGameState* SpartaState = Cast<ASpartaGameState>(World->GetGameState()))
+	{
+		if (SpartaState->GetCurrentWave() < 2)
+		{
+			return;
+		}
+	}
 
 	// 즉시 첫 토글 상태(원하면 호출을 지연시킬 수 있음)
 	// 현재는 타이머 시작 시 첫 호출은 ToggleInterval 후이므로, 초기 보이지 않는 상태 유지
@@ -53,6 +59,17 @@ void ASpikeItem::ToggleActiveState()
 		Collision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		StaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+}
+
+void ASpikeItem::StartSpike()
+{
+	GetWorldTimerManager().SetTimer(
+		ToggleTimerHandle,
+		this,
+		&ASpikeItem::ToggleActiveState,
+		ToggleInterval,
+		true
+	);
 }
 
 void ASpikeItem::ActivateItem(AActor* Activator)
